@@ -4,73 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Школьный Рейтинг Классов</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        h1 { text-align: center; margin-bottom: 10px; color: #2c3e50; }
-        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; }
+        
+        h1 { text-align: center; margin-bottom: 10px; color: #2c3e50; text-transform: uppercase; letter-spacing: 1px; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 40px; }
 
-        /* Сетка карточек */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; }
 
-        /* Карточка класса */
+        /* ОСНОВНАЯ КАРТОЧКА */
         .card {
-            background: white; border-radius: 16px; padding: 24px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer;
-            transition: all 0.3s ease; border: 1px solid #eee;
+            background: white; border-radius: 20px; padding: 24px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 2px solid transparent; /* Для цветных рамок */
+            position: relative;
+            overflow: hidden;
         }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: #3498db; }
+        .card:hover { transform: translateY(-7px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
         
-        .class-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .class-name { font-size: 1.8em; font-weight: 800; color: #34495e; }
-        
-        .score-box { display: flex; align-items: baseline; gap: 10px; }
-        .score { font-size: 3em; font-weight: 800; color: #2c3e50; line-height: 1; }
-        
-        /* Индикаторы тренда */
-        .trend { font-weight: bold; font-size: 0.9em; padding: 5px 10px; border-radius: 20px; display: inline-block; }
-        .trend.up { background: #e8f5e9; color: #2e7d32; }   /* Зеленый */
-        .trend.down { background: #ffebee; color: #c62828; } /* Красный */
-        .trend.same { background: #f5f5f5; color: #616161; } /* Серый */
+        /* Место в рейтинге (цифра) */
+        .rank-number {
+            position: absolute; top: -10px; right: -10px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #f0f2f5; color: #bdc3c7;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5em; font-weight: 900;
+            padding-top: 10px; padding-right: 10px; /* Сдвиг для красоты */
+            z-index: 0;
+        }
 
-        .hint { font-size: 0.8em; color: #aaa; margin-top: 15px; text-align: right; }
+        /* ОСОБЫЕ СТИЛИ ДЛЯ ТОП-3 */
+        /* 1 МЕСТО */
+        .card.rank-1 { border-color: #f1c40f; background: linear-gradient(to bottom right, #fff, #fffdf0); transform: scale(1.05); }
+        .card.rank-1 .rank-number { background: #f1c40f; color: white; box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4); }
+        .card.rank-1 .class-name::before { content: '👑 '; } 
+        
+        /* 2 МЕСТО */
+        .card.rank-2 { border-color: #bdc3c7; }
+        .card.rank-2 .rank-number { background: #bdc3c7; color: white; }
+        
+        /* 3 МЕСТО */
+        .card.rank-3 { border-color: #cd7f32; }
+        .card.rank-3 .rank-number { background: #cd7f32; color: white; }
 
-        /* Модальное окно (График) */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;
-            backdrop-filter: blur(3px);
-        }
-        .modal {
-            background: white; padding: 30px; border-radius: 24px;
-            width: 90%; max-width: 800px; position: relative;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        }
-        .close-btn {
-            position: absolute; top: 20px; right: 25px; font-size: 28px; cursor: pointer; color: #ccc; transition: 0.2s;
-        }
+        .class-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 1; }
+        .class-name { font-size: 2em; font-weight: 900; color: #2c3e50; }
+        
+        .score-box { display: flex; align-items: baseline; justify-content: space-between; position: relative; z-index: 1; }
+        .score { font-size: 3.5em; font-weight: 800; color: #34495e; line-height: 1; }
+        
+        .trend { font-weight: bold; font-size: 0.9em; padding: 6px 12px; border-radius: 20px; }
+        .trend.up { background: #e8f5e9; color: #27ae60; }
+        .trend.down { background: #ffebee; color: #c0392b; }
+        .trend.same { background: #f5f5f5; color: #95a5a6; }
+
+        .hint { font-size: 0.8em; color: #ccc; margin-top: 15px; text-align: center; }
+
+        /* Модальное окно */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 800px; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        .close-btn { position: absolute; top: 20px; right: 25px; font-size: 28px; cursor: pointer; color: #ccc; }
         .close-btn:hover { color: #333; }
-        
         #loading { text-align: center; font-size: 1.2em; color: #666; margin-top: 50px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🏆 Успеваемость Школы</h1>
-    <div class="subtitle">Нажмите на карточку класса для просмотра истории</div>
+    <h1>🏆 Рейтинг Школы</h1>
+    <div class="subtitle">Топ классов по среднему баллу</div>
     
-    <div id="loading">Загрузка данных из Google Таблицы...</div>
+    <div id="loading">Загрузка и сортировка данных...</div>
     <div class="grid" id="cards-container"></div>
 </div>
 
 <div class="modal-overlay" id="modal">
     <div class="modal">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 id="modal-title" style="margin-top: 0;">История</h2>
+        <h2 id="modal-title" style="margin-top: 0; color: #2c3e50;">История</h2>
         <canvas id="historyChart"></canvas>
     </div>
 </div>
@@ -79,35 +94,34 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // ВАША ССЫЛКА ВСТАВЛЕНА СЮДА 👇
-    const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxnKaP_s6X9sGH3msyyD3VmZATh11fxVX0_docmBXEX7eJwP1CD2rpiHvys4-U8dPQtMOPFcDnU3mw/pub?output=csv";
+    // 👇 ПРЯМАЯ ССЫЛКА НА ВАШ CSV (CORS должен работать на GitHub Pages)
+    const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxnKaP_s6X9sGH3msyyD3VmZATh11fxVX0_docmBXEX7eJwP1CD2rpiHvys4-U8dPQtMOPFcDnU3mw/pub?gid=1408294976&single=true&output=csv";
 
-    // 1. Загрузка данных
     Papa.parse(DATA_URL, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-            processData(results.data, results.meta.fields);
+            processAndSortData(results.data, results.meta.fields);
         },
         error: function(err) {
-            document.getElementById('loading').innerHTML = "❌ Ошибка загрузки. Проверьте интернет.";
-            console.error(err);
+            document.getElementById('loading').innerHTML = "⚠️ Ошибка. Если вы открыли файл локально, используйте Live Server.";
         }
     });
 
-    function processData(data, fields) {
+    function processAndSortData(data, fields) {
         document.getElementById('loading').style.display = 'none';
         const container = document.getElementById('cards-container');
-        
-        // fields[0] - это колонка "Class", остальные - даты
         const dateColumns = fields.slice(1); 
+
+        // 1. Сначала превращаем данные в удобный массив объектов
+        let classesData = [];
 
         data.forEach(row => {
             const className = row[fields[0]]; 
             if(!className) return;
 
-            // Парсим историю (меняем запятые на точки)
+            // Парсим оценки
             const history = dateColumns.map(date => {
                 let val = row[date];
                 if (!val) return null; 
@@ -116,56 +130,71 @@
 
             if (history.length === 0) return;
 
-            // Последняя и предпоследняя оценка
             const currentScore = history[history.length - 1];
             const prevScore = history.length > 1 ? history[history.length - 2] : currentScore;
+            const diff = (currentScore - prevScore).toFixed(2);
             
-            // Логика стрелочек
-            let trendHtml = '';
-            let diff = (currentScore - prevScore).toFixed(2);
-            
-            if (currentScore > prevScore) {
-                trendHtml = `<div class="trend up">⬆ +${diff}</div>`;
-            } else if (currentScore < prevScore) {
-                trendHtml = `<div class="trend down">⬇ ${diff}</div>`;
-            } else {
-                trendHtml = `<div class="trend same">Start</div>`;
-            }
-            if (history.length > 1 && diff == 0) trendHtml = `<div class="trend same">= 0.00</div>`;
+            // Сохраняем объект класса
+            classesData.push({
+                name: className,
+                currentScore: currentScore,
+                prevScore: prevScore,
+                diff: diff,
+                history: history,
+                dates: dateColumns.slice(0, history.length)
+            });
+        });
 
-            // Создаем HTML карточки
+        // 2. СОРТИРОВКА (От большего к меньшему)
+        classesData.sort((a, b) => b.currentScore - a.currentScore);
+
+        // 3. Отрисовка
+        classesData.forEach((item, index) => {
+            const rank = index + 1; // Место в рейтинге (1, 2, 3...)
+            
+            // Определяем тренд
+            let trendHtml = '';
+            if (item.currentScore > item.prevScore) {
+                trendHtml = `<div class="trend up">⬆ ${item.diff}</div>`;
+            } else if (item.currentScore < item.prevScore) {
+                trendHtml = `<div class="trend down">⬇ ${item.diff}</div>`;
+            } else {
+                trendHtml = `<div class="trend same">---</div>`;
+            }
+
+            // Создаем карточку
             const card = document.createElement('div');
-            card.className = 'card';
+            // Добавляем класс rank-1, rank-2 и т.д. для стилизации
+            card.className = `card rank-${rank}`;
+            
             card.innerHTML = `
+                <div class="rank-number">${rank}</div>
                 <div class="class-header">
-                    <span class="class-name">${className}</span>
-                    ${trendHtml}
+                    <span class="class-name">${item.name}</span>
                 </div>
                 <div class="score-box">
-                    <span class="score">${currentScore.toFixed(2)}</span>
+                    <span class="score">${item.currentScore.toFixed(2)}</span>
+                    ${trendHtml}
                 </div>
-                <div class="hint">Посмотреть график 📊</div>
+                <div class="hint">График 📊</div>
             `;
             
-            card.onclick = () => openModal(className, dateColumns.slice(0, history.length), history);
+            card.onclick = () => openModal(item.name, item.dates, item.history);
             container.appendChild(card);
         });
     }
 
-    // 2. Настройка графика
+    // Логика графика (без изменений)
     let myChart = null;
-
     function openModal(className, labels, data) {
         document.getElementById('modal').style.display = 'flex';
-        document.getElementById('modal-title').innerText = `Динамика класса ${className}`;
-
+        document.getElementById('modal-title').innerText = `Динамика: ${className}`;
         const ctx = document.getElementById('historyChart').getContext('2d');
         if (myChart) myChart.destroy();
 
-        // Градиент для красоты
         let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(52, 152, 219, 0.5)');
-        gradient.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+        gradient.addColorStop(0, 'rgba(46, 204, 113, 0.4)'); // Зеленоватый градиент
+        gradient.addColorStop(1, 'rgba(46, 204, 113, 0.0)');
 
         myChart = new Chart(ctx, {
             type: 'line',
@@ -174,37 +203,28 @@
                 datasets: [{
                     label: 'Средний балл',
                     data: data,
-                    borderColor: '#3498db',
+                    borderColor: '#2ecc71',
                     backgroundColor: gradient,
                     borderWidth: 3,
                     pointBackgroundColor: '#fff',
-                    pointBorderColor: '#3498db',
+                    pointBorderColor: '#27ae60',
                     pointRadius: 6,
                     fill: true,
-                    tension: 0.4 
+                    tension: 0.3
                 }]
             },
             options: {
                 responsive: true,
                 scales: {
-                    y: { 
-                        min: 2, max: 5,
-                        grid: { color: '#f0f0f0' }
-                    },
-                    x: { grid: { display: false } }
+                    y: { min: 2, max: 5 }
                 }
             }
         });
     }
 
-    function closeModal() {
-        document.getElementById('modal').style.display = 'none';
-    }
-    window.onclick = function(event) {
-        if (event.target == document.getElementById('modal')) closeModal();
-    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    window.onclick = function(event) { if (event.target == document.getElementById('modal')) closeModal(); }
 </script>
 
 </body>
-
 </html>
