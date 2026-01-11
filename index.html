@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Школьный Рейтинг Классов</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; color: #2c3e50; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; }
+
+        /* Сетка карточек */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+
+        /* Карточка класса */
+        .card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer;
+            transition: all 0.3s ease; border: 1px solid #eee;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: #3498db; }
+        
+        .class-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .class-name { font-size: 1.8em; font-weight: 800; color: #34495e; }
+        
+        .score-box { display: flex; align-items: baseline; gap: 10px; }
+        .score { font-size: 3em; font-weight: 800; color: #2c3e50; line-height: 1; }
+        
+        /* Индикаторы тренда */
+        .trend { font-weight: bold; font-size: 0.9em; padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        .trend.up { background: #e8f5e9; color: #2e7d32; }   /* Зеленый */
+        .trend.down { background: #ffebee; color: #c62828; } /* Красный */
+        .trend.same { background: #f5f5f5; color: #616161; } /* Серый */
+
+        .hint { font-size: 0.8em; color: #aaa; margin-top: 15px; text-align: right; }
+
+        /* Модальное окно (График) */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .modal {
+            background: white; padding: 30px; border-radius: 24px;
+            width: 90%; max-width: 800px; position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .close-btn {
+            position: absolute; top: 20px; right: 25px; font-size: 28px; cursor: pointer; color: #ccc; transition: 0.2s;
+        }
+        .close-btn:hover { color: #333; }
+        
+        #loading { text-align: center; font-size: 1.2em; color: #666; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 Успеваемость Школы</h1>
+    <div class="subtitle">Нажмите на карточку класса для просмотра истории</div>
+    
+    <div id="loading">Загрузка данных из Google Таблицы...</div>
+    <div class="grid" id="cards-container"></div>
+</div>
+
+<div class="modal-overlay" id="modal">
+    <div class="modal">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title" style="margin-top: 0;">История</h2>
+        <canvas id="historyChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // ВАША ССЫЛКА ВСТАВЛЕНА СЮДА 👇
+    const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxnKaP_s6X9sGH3msyyD3VmZATh11fxVX0_docmBXEX7eJwP1CD2rpiHvys4-U8dPQtMOPFcDnU3mw/pub?gid=1408294976&single=true&output=csv";
+
+    // 1. Загрузка данных
+    Papa.parse(DATA_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            processData(results.data, results.meta.fields);
+        },
+        error: function(err) {
+            document.getElementById('loading').innerHTML = "❌ Ошибка загрузки. Проверьте интернет.";
+            console.error(err);
+        }
+    });
+
+    function processData(data, fields) {
+        document.getElementById('loading').style.display = 'none';
+        const container = document.getElementById('cards-container');
+        
+        // fields[0] - это колонка "Class", остальные - даты
+        const dateColumns = fields.slice(1); 
+
+        data.forEach(row => {
+            const className = row[fields[0]]; 
+            if(!className) return;
+
+            // Парсим историю (меняем запятые на точки)
+            const history = dateColumns.map(date => {
+                let val = row[date];
+                if (!val) return null; 
+                return parseFloat(val.replace(',', '.')); 
+            }).filter(val => val !== null && !isNaN(val));
+
+            if (history.length === 0) return;
+
+            // Последняя и предпоследняя оценка
+            const currentScore = history[history.length - 1];
+            const prevScore = history.length > 1 ? history[history.length - 2] : currentScore;
+            
+            // Логика стрелочек
+            let trendHtml = '';
+            let diff = (currentScore - prevScore).toFixed(2);
+            
+            if (currentScore > prevScore) {
+                trendHtml = `<div class="trend up">⬆ +${diff}</div>`;
+            } else if (currentScore < prevScore) {
+                trendHtml = `<div class="trend down">⬇ ${diff}</div>`;
+            } else {
+                trendHtml = `<div class="trend same">Start</div>`;
+            }
+            if (history.length > 1 && diff == 0) trendHtml = `<div class="trend same">= 0.00</div>`;
+
+            // Создаем HTML карточки
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="class-header">
+                    <span class="class-name">${className}</span>
+                    ${trendHtml}
+                </div>
+                <div class="score-box">
+                    <span class="score">${currentScore.toFixed(2)}</span>
+                </div>
+                <div class="hint">Посмотреть график 📊</div>
+            `;
+            
+            card.onclick = () => openModal(className, dateColumns.slice(0, history.length), history);
+            container.appendChild(card);
+        });
+    }
+
+    // 2. Настройка графика
+    let myChart = null;
+
+    function openModal(className, labels, data) {
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-title').innerText = `Динамика класса ${className}`;
+
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        if (myChart) myChart.destroy();
+
+        // Градиент для красоты
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(52, 152, 219, 0.5)');
+        gradient.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Средний балл',
+                    data: data,
+                    borderColor: '#3498db',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#3498db',
+                    pointRadius: 6,
+                    fill: true,
+                    tension: 0.4 
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        min: 2, max: 5,
+                        grid: { color: '#f0f0f0' }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('modal')) closeModal();
+    }
+</script>
+
+</body>
+</html>
